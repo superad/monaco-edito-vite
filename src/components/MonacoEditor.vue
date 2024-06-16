@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <div class="editor-header">
-      <div class="language-picker">
+      <div class="language-picker" :style="showLanguagePicker">
         <p>语言：</p>
         <a-space>
           <a-select
@@ -13,7 +13,7 @@
           ></a-select>
         </a-space>
       </div>
-      <div class="theme-picker">
+      <div class="theme-picker" :style="showThemePicker">
         <p>主题：</p>
         <a-radio-group v-model:value="currentTheme" button-style="solid" @change="selectTheme">
           <a-radio-button v-for="theme in themesOption" :value="theme.value">
@@ -65,13 +65,13 @@ const themesOption = ref([
   { value: 'hc-black', label: 'hc-black' }
 ])
 
-const code = ref(`
-// Type source code in your language here...
-public class HelloWorld {
-    public static void main(String[] args) {
-        System.out.println("Hello, World!");
-    }
-}`)
+//默认代码
+const soureCode = ref(`// Type source code in your language here...`)
+//语法和主题配置选择配置
+const showLanguagePicker = ref({})
+const showThemePicker = ref({})
+//只读
+const readOnly = ref(false)
 
 function selectLanguage(value: string) {
   currentLanguage.value = value
@@ -84,15 +84,89 @@ function selectTheme(e: any) {
   monaco.editor.setTheme(currentTheme.value)
 }
 
-onMounted(() => {
+const loadMonacoEditor = async () => {
+  return new Promise((resolve) => {
+    resolve(monaco)
+  })
+}
+
+// 组件配置初始化
+function initEditorConfig() {
+  soureCode.value = props.sourceCode
+  currentTheme.value = props.theme
+  currentLanguage.value = props.language
+  readOnly.value = props.readOnly
+  //控制 language theme选择器
+  if (props.enableLanguagePicker) {
+    showLanguagePicker.value = {}
+  } else {
+    showLanguagePicker.value = { display: 'none' }
+  }
+
+  if (props.enableThemePicker) {
+    showThemePicker.value = {}
+  } else {
+    showThemePicker.value = { display: 'none' }
+  }
+}
+
+onMounted(async () => {
+  await loadMonacoEditor()
+  //初始化组件参数
+  initEditorConfig()
   monaco.editor.create(editor.value, {
-    value: code.value, //初始代码
+    value: soureCode.value, //初始代码
     theme: currentTheme.value, //主题 默认 vs, 可选值: 'vs','vs-dark','hc-black'
     language: currentLanguage.value, // 初始语言
     lineNumbers: 'on', //展示行数 默认 on
-    readOnly: false, //只读    默认false
+    readOnly: readOnly.value, //只读    默认false
     autoIndent: 'advanced' // 自动缩进	默认'advanced', 可选值 'none'/'keep'/'brackets'/'advanced'/'full'
   })
+})
+
+//组件参数
+const props = defineProps({
+  style: {
+    type: Object,
+    required: true,
+    default: () => ({
+      height: '300px',
+      width: '100%',
+      boreder: '1px solid #ccc',
+      borderRadius: '4px'
+    })
+  },
+  enableLanguagePicker: {
+    type: Boolean,
+    required: false,
+    default: () => false
+  },
+  enableThemePicker: {
+    type: Boolean,
+    required: false,
+    default: () => false
+  },
+  sourceCode: {
+    type: String,
+    required: false,
+    default: () => `//Type source code in your language here...
+    `
+  },
+  language: {
+    type: String,
+    required: false,
+    default: () => 'Java'
+  },
+  theme: {
+    type: String,
+    required: false,
+    default: () => 'vs-dark'
+  },
+  readOnly: {
+    type: Boolean,
+    required: false,
+    default: () => false
+  }
 })
 </script>
 
