@@ -25,18 +25,12 @@ pnpm dev
 
 #### 1、vs主题
 
-<img src="public/vs.png" width="50%">
-<br/>
-<br/>
+![vs theme](./public/vs.png)
 
 #### 2、vs-dark 主题
 
-<img src="public/vs-dark.png" width="50%">
-<br/>
-<br/>
+![vs-dark theme](./public/vs-dark.png)
 
 #### 3、hc-black 主题
 
-<img src="public/hc-black.png" width="50%">
-<br/>
-<br/>
+![hc-black theme](./public/hc-black.png)
