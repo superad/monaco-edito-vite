@@ -155,7 +155,7 @@ const props = defineProps({
   language: {
     type: String,
     required: false,
-    default: () => 'Java'
+    default: () => 'java'
   },
   theme: {
     type: String,
