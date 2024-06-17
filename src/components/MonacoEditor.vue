@@ -8,18 +8,20 @@
             ref="select"
             v-model:value="currentLanguage"
             style="width: 120px"
-            @change="selectLanguage"
             :options="languagesOption"
           ></a-select>
         </a-space>
       </div>
       <div class="theme-picker" :style="showThemePicker">
         <p>主题：</p>
-        <a-radio-group v-model:value="currentTheme" button-style="solid" @change="selectTheme">
+        <a-radio-group v-model:value="currentTheme" button-style="solid">
           <a-radio-button v-for="theme in themesOption" :value="theme.value">
             {{ theme.label }}
           </a-radio-button>
         </a-radio-group>
+      </div>
+      <div class="get-code-button">
+        <Notification :button="button" />
       </div>
     </div>
     <div id="editor" ref="editor"></div>
@@ -28,7 +30,8 @@
 
 <script setup lang="ts" name="MonacoEditor">
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, reactive } from 'vue'
+import Notification from './Notification.vue'
 
 // @ts-ignore 注册自定义语法高亮
 import customLangMonarch from '@/custom-lang-monarch'
@@ -72,17 +75,7 @@ const showLanguagePicker = ref({})
 const showThemePicker = ref({})
 //只读
 const readOnly = ref(false)
-
-function selectLanguage(value: string) {
-  currentLanguage.value = value
-  const models = monaco.editor.getModels()
-  monaco.editor.setModelLanguage(models[0], currentLanguage.value)
-}
-
-function selectTheme(e: any) {
-  currentTheme.value = e.target.value
-  monaco.editor.setTheme(currentTheme.value)
-}
+const codeText = ref('')
 
 const loadMonacoEditor = async () => {
   return new Promise((resolve) => {
@@ -90,37 +83,47 @@ const loadMonacoEditor = async () => {
   })
 }
 
+watch(currentLanguage, (newLanguage) => {
+  if (editor.value) {
+    const models = monaco.editor.getModels()
+    monaco.editor.setModelLanguage(models[0], newLanguage)
+  }
+})
+
+watch(currentTheme, (newTheme) => {
+  if (editor.value) {
+    monaco.editor.setTheme(newTheme)
+  }
+})
+
 // 组件配置初始化
-function initEditorConfig() {
+const initConfig = () => {
   soureCode.value = props.sourceCode
   currentTheme.value = props.theme
   currentLanguage.value = props.language
   readOnly.value = props.readOnly
-  //控制 language theme选择器
-  if (props.enableLanguagePicker) {
-    showLanguagePicker.value = {}
-  } else {
-    showLanguagePicker.value = { display: 'none' }
-  }
-
-  if (props.enableThemePicker) {
-    showThemePicker.value = {}
-  } else {
-    showThemePicker.value = { display: 'none' }
-  }
+  showLanguagePicker.value = props.enableLanguagePicker ? {} : { display: 'none' }
+  showThemePicker.value = props.enableThemePicker ? {} : { display: 'none' }
 }
 
 onMounted(async () => {
-  await loadMonacoEditor()
   //初始化组件参数
-  initEditorConfig()
-  monaco.editor.create(editor.value, {
+  initConfig()
+  await loadMonacoEditor()
+  const editorInstance = monaco.editor.create(editor.value, {
     value: soureCode.value, //初始代码
     theme: currentTheme.value, //主题 默认 vs, 可选值: 'vs','vs-dark','hc-black'
     language: currentLanguage.value, // 初始语言
     lineNumbers: 'on', //展示行数 默认 on
     readOnly: readOnly.value, //只读    默认false
     autoIndent: 'advanced' // 自动缩进	默认'advanced', 可选值 'none'/'keep'/'brackets'/'advanced'/'full'
+  })
+
+  //监控代码变化
+  editorInstance.onDidChangeModelContent(() => {
+    const model = monaco.editor.getModels()[0]
+    codeText.value = model.getValue()
+    console.log('代码变化: \n', codeText.value)
   })
 })
 
@@ -168,6 +171,20 @@ const props = defineProps({
     default: () => false
   }
 })
+
+//代码提示框按钮
+let button = ref({
+  name: '获取代码',
+  title: '提示',
+  message: props.sourceCode,
+  onClose: () => {
+    console.log('close code text button')
+  }
+})
+
+watch(codeText, () => {
+  button.value.message = codeText.value
+})
 </script>
 
 <style scoped>
@@ -200,6 +217,12 @@ const props = defineProps({
 
 .theme-picker p {
   margin: 0 10px 0 0;
+}
+.get-code-button {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  margin-left: 30px;
 }
 
 #editor {
